@@ -31,6 +31,9 @@ class DealData(object):
 
         return cls(dealer_ix, vuln_ns, vuln_ew, hands, auction)
 
+    def reset_auction(self):
+        self.auction = [bid for bid in self.auction if bid == 'PAD_START']
+
     def get_binary(self, n_steps=8):
         X = np.zeros((4, n_steps, 2 + 1 + 4 + 52 + 3 * 40))
         y = np.zeros((4, n_steps, 40))
@@ -74,7 +77,6 @@ class DealData(object):
             y[hand_ix, t, :] = bidding.encode_bid(target_bid)
 
             times_seen[hand_ix] += 1
-            #print(times_seen)
             i += 1
 
         for n in times_seen:

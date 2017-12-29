@@ -97,11 +97,19 @@ def sample_bid(auction, from_bids):
     if auction_over(auction):
         return 'PAD_END'
     while True:
-        bid_one_hot = np.random.multinomial(1, from_bids[0])
+        bid_one_hot = np.random.multinomial(1, from_bids)
         bid_id = np.argmax(bid_one_hot)
         bid = ID2BID[bid_id]
         if can_bid(bid, auction):
             return bid
+
+def bid_max_bid(auction, from_bids):
+    bid = ID2BID(np.argmax(from_bids))
+    if can_bid(bid, auction):
+        return bid
+    else:
+        print('invalid bid', auction, bid)
+        return sample_bid(auction, from_bids)
         
 def get_contract(auction):
     contract = None
@@ -166,85 +174,3 @@ def get_par(contracts, vuln_ns, vuln_ew):
     assert best_contract[0] == best_contract[1]
             
     return best_contract[0]
-
-
-class Simulator(object):
-    
-    def __init__(self, deal, contracts, model):
-        # TODO: fix vulnerability
-        self.deal = deal
-        self.contracts = contracts
-        self.hands = [
-            deal[0,:,:,0].reshape((1, 52)), 
-            deal[0,:,:,1].reshape((1, 52)),
-            deal[0,:,:,2].reshape((1, 52)),
-            deal[0,:,:,3].reshape((1, 52)),
-        ]
-        self.model = model
-        
-        self.par = get_par(self.contracts, False, False)
-        
-        self.cache = {}
-        
-    def simulate_bid(self, auction, s_c, s_h, n=1):
-        i = len(auction) % 4
-        padded_auction = (['PAD_START'] * max(0, 3 - len(auction))) + auction
-        auction_key = tuple(auction)
-        if auction_key not in self.cache:
-            # TODO: fix vulnerability
-            x_input = get_input(padded_auction[-3], padded_auction[-2], padded_auction[-1], self.hands[i], False, False)
-            out_bid_np, next_c_np, next_h_np = self.model(x_input, s_c, s_h)
-            self.cache[auction_key] = (out_bid_np, next_c_np, next_h_np)
-        else:
-            out_bid_np, next_c_np, next_h_np = self.cache[auction_key]
-        bids = []
-        last_contract = get_contract(padded_auction)
-        while len(bids) < n:
-            s_bid = sample_bid(padded_auction, out_bid_np)
-            if is_contract(s_bid) and is_higher_contract(s_bid, self.par):
-                 continue
-            if 'X' in s_bid and contract_level_step(last_contract) == contract_level_step(self.par) and last_contract[-1] == self.par[-1]:
-                if 'X' not in self.par:
-                    continue
-            bids.append(s_bid)
-        return bids, (next_c_np, next_h_np)
-
-    def simulate_auction(self, auction, s_c, s_h):
-        sim_auction = auction[:]
-        C, H = s_c, s_h
-        while not auction_over(sim_auction):
-            bids, (next_c_np, next_h_np) = self.simulate_bid(sim_auction, C, H, 1)
-            sim_auction.append(bids[0])
-            C = next_c_np
-            H = next_h_np
-        return sim_auction
-    
-    def best_bid(self, auction, s_c, s_h, n=100):
-        results = {}
-        declarer2i = {seat:i for i, seat in enumerate(['N', 'E', 'S', 'W'])}
-        bids, (next_c_np, next_h_np) = self.simulate_bid(auction, s_c, s_h, n)
-        for bid in bids:
-            sim_auction = self.simulate_auction(auction + [bid], next_c_np, next_h_np)
-            sim_contract = get_contract(sim_auction)
-            if sim_contract is not None:
-                seat_to_bid = len(auction) % 4
-                declarer_seat = declarer2i[sim_contract[-1]]
-                sign = 1 if (seat_to_bid + declarer_seat) % 2 == 0 else -1
-                score = sign * self.contracts.get(sim_contract, (0, 0))[0]  # TODO: fix vulnerability
-            else:
-                score = 0
-            if bid not in results:
-                results[bid] = [0, 0]
-            results[bid][0] += score
-            results[bid][1] += 1
-        max_score_bid = max(((v[0] / v[1], k) for k, v in results.items()))
-        return max_score_bid
-    
-    def best_auction(self, auction, s_c, s_h, n=100):
-        self.cache = {}
-        best_auction = auction[:]
-        while not auction_over(best_auction):
-            score, bid = self.best_bid(best_auction, s_c, s_h, n)
-            best_auction.append(bid)
-        return score, best_auction
-    

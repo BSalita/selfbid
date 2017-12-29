@@ -20,8 +20,8 @@ n_examples = y_train.shape[0]
 n_ftrs = X_train.shape[2]
 n_bids = y_train.shape[2]
 
-lstm_size = 512
-n_layers = 4
+lstm_size = 128
+n_layers = 3
 
 keep_prob = tf.placeholder(tf.float32, name='keep_prob')
 
@@ -65,6 +65,6 @@ with tf.Session() as sess:
             c_valid = sess.run(cost, feed_dict={seq_in: X_val, seq_out: y_val, keep_prob: 1.0})
             print('{}. c_train={} c_valid={}'.format(i, c_train, c_valid))
             saver.save(sess, model_path, global_step=i)
-        sess.run(train_step, feed_dict={seq_in: x_batch, seq_out: y_batch, keep_prob: 0.6})
+        sess.run(train_step, feed_dict={seq_in: x_batch, seq_out: y_batch, keep_prob: 0.8})
 
     saver.save(sess, model_path, global_step=n_iterations)

@@ -41,10 +41,10 @@ class Simulator(object):
             bids.append(s_bid)
         return bids
 
-    def simulate_auction(self, auction):
+    def simulate_auction(self, auction, max_bid=False):
         sim_auction = auction[:]
         while not bidding.auction_over(sim_auction):
-            bids = self.simulate_bid(sim_auction, 1)
+            bids = self.simulate_bid(sim_auction, 1, max_bid)
             sim_auction.append(bids[0])
         return sim_auction
     

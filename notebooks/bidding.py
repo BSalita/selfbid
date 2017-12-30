@@ -104,7 +104,7 @@ def sample_bid(auction, from_bids):
             return bid
 
 def bid_max_bid(auction, from_bids):
-    bid = ID2BID(np.argmax(from_bids))
+    bid = ID2BID[np.argmax(from_bids)]
     if can_bid(bid, auction):
         return bid
     else:

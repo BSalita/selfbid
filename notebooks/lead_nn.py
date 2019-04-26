@@ -93,7 +93,9 @@ cost_reg = l2_reg * (1.0 / (2*batch_size)) * sum([tf.reduce_sum(tf.square(w)) fo
 
 cost = cost_pred/batch_size + cost_reg
 
-train_step = tf.train.AdamOptimizer(0.0003).minimize(cost)
+learning_rate = tf.placeholder(tf.float32, name='learning_rate')
+
+train_step = tf.train.AdamOptimizer(learning_rate).minimize(cost)
 #train_step = tf.train.MomentumOptimizer(0.0001, momentum=0.8).minimize(cost)
 #train_step = tf.train.MomentumOptimizer(0.001, momentum=0.9).minimize(cost)
 #train_step = tf.train.AdamOptimizer(0.001).minimize(cost)
@@ -124,11 +126,20 @@ with tf.Session() as sess:
             c_valid_pred = sess.run(cost_pred, feed_dict={seq_in: A_val, H: H_val, C: C_val, keep_prob: 1.0})
             pred_valid = sess.run(pred, feed_dict={seq_in: A_val, H: H_val, keep_prob: 1.0})
             metric_valid = np.mean(metric(pred_valid, C_val))
-            print('{}. c_train_reg={} c_train_pred={} c_valid_pred={} tricks_valid={} t={}'.format(i, c_train_reg, c_train_pred/10000, c_valid_pred/10000, metric_valid, datetime.datetime.now().isoformat()))
+            pred_train = sess.run(pred, feed_dict={seq_in: a_cost, H: h_cost, keep_prob: 1.0})
+            metric_train = np.mean(metric(pred_train, c_cost))
+            print('{}. c_train_reg={} c_train_pred={} c_valid_pred={} tricks_train={} tricks_valid={} t={}'.format(
+                i, 
+                c_train_reg, 
+                c_train_pred/10000, 
+                c_valid_pred/10000,
+                metric_train,
+                metric_valid,
+                datetime.datetime.now().isoformat()))
             sys.stdout.flush()
 
             saver.save(sess, model_path, global_step=i)
         
-        sess.run(train_step, feed_dict={seq_in: a_batch, H: h_batch, C: c_batch, keep_prob: 0.8})
+        sess.run(train_step, feed_dict={seq_in: a_batch, H: h_batch, C: c_batch, keep_prob: 0.8, learning_rate: 0.0003})
 
     saver.save(sess, model_path, global_step=n_iterations)

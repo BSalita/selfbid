@@ -97,7 +97,7 @@ def sample_bid(auction, from_bids):
     if auction_over(auction):
         return 'PAD_END'
     while True:
-        bid_one_hot = np.random.multinomial(1, from_bids)
+        bid_one_hot = np.random.multinomial(1, from_bids[0])
         bid_id = np.argmax(bid_one_hot)
         bid = ID2BID[bid_id]
         if can_bid(bid, auction):
@@ -108,7 +108,6 @@ def bid_max_bid(auction, from_bids):
     if can_bid(bid, auction):
         return bid
     else:
-        print('invalid bid', auction, bid)
         return sample_bid(auction, from_bids)
         
 def get_contract(auction):
@@ -174,3 +173,12 @@ def get_par(contracts, vuln_ns, vuln_ew):
     assert best_contract[0] == best_contract[1]
             
     return best_contract[0]
+
+def get_score(contract, contract_scores, vuln_ns, vuln_ew):
+    if contract is None:
+        return 0
+    declarer = contract[-1]
+    sign = 1 if declarer in ('N', 'S') else -1
+    declarer_vuln = int(vuln_ns if declarer in ('N', 'S') else vuln_ew)
+    return sign * contract_scores[contract][declarer_vuln]
+

@@ -35,8 +35,8 @@ class DealData(object):
         self.auction = [bid for bid in self.auction if bid == 'PAD_START']
 
     def get_binary(self, n_steps=8):
-        X = np.zeros((4, n_steps, 2 + 1 + 4 + 52 + 3 * 40))
-        y = np.zeros((4, n_steps, 40))
+        X = np.zeros((4, n_steps, 2 + 1 + 4 + 52 + 3 * 40), dtype=np.float16)
+        y = np.zeros((4, n_steps, 40), dtype=np.float16)
 
         padded_auction = self.auction + (['PAD_END'] * 4 * n_steps)
 
@@ -126,6 +126,23 @@ def load_deals(fin):
 
     yield (deal_str, auction_str, contracts)
 
+def load_deals_no_contracts(fin):
+    deal_str = ''
+    auction_str = ''
+
+    for line_number, line in enumerate(fin):
+        line = line.decode('ascii').strip()
+        if line_number % 2 == 0:
+            if line_number > 0:
+                yield (deal_str, auction_str, None)
+                deal_str = ''
+                auction_str = ''
+            deal_str = line
+        elif line_number % 2 == 1:
+            auction_str = line
+
+    yield (deal_str, auction_str, None)
+
 
 def test_debug():
     deal_data = DealData.from_deal_auction_string(
@@ -145,15 +162,15 @@ def test_debug():
     import pdb; pdb.set_trace()
 
 
-def create_binary(data_it, n, out_dir):
-    X = np.zeros((4 * n, 4, 2 + 1 + 4 + 52 + 3 * 40))
-    y = np.zeros((4 * n, 4, 40))
+def create_binary(data_it, n, out_dir, n_steps=4):
+    X = np.zeros((4 * n, n_steps, 2 + 1 + 4 + 52 + 3 * 40), dtype=np.float16)
+    y = np.zeros((4 * n, n_steps, 40), dtype=np.float16)
 
     for i, (deal_str, auction_str, _) in enumerate(data_it):
         if i % 1000 == 0:
             print(i)
         deal_data = DealData.from_deal_auction_string(deal_str, auction_str)
-        x_part, y_part = deal_data.get_binary(4)
+        x_part, y_part = deal_data.get_binary(n_steps)
         start_ix = i * 4
         end_ix = (i + 1) * 4
         X[start_ix:end_ix,:,:] = x_part
@@ -167,5 +184,9 @@ if __name__ == '__main__':
     n = int(sys.argv[1])
     infnm = sys.argv[2]
 
-    create_binary(load_deals(gzip.open(infnm)), n, '.')
+    #create_binary(load_deals(gzip.open(infnm)), n, '.')
+    #create_binary(load_deals_no_contracts(gzip.open(infnm)), n, './bw5c_bin')
+    #create_binary(load_deals_no_contracts(gzip.open(infnm)), n, './jos_bin')
+
+    create_binary(load_deals_no_contracts(gzip.open(infnm)), n, './bw5c_8_bin', n_steps=8)
 

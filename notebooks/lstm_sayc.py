@@ -10,11 +10,17 @@ batch_size = 64
 n_iterations = 500000
 display_step = 1000
 
-X_train = np.load('./X_train.npy')
-y_train = np.load('./y_train.npy')
+# X_train = np.load('./X_train.npy')
+# y_train = np.load('./y_train.npy')
 
-X_val = np.load('./X_val.npy')
-y_val = np.load('./y_val.npy')
+# X_val = np.load('./X_val.npy')
+# y_val = np.load('./y_val.npy')
+
+X_train = np.load('./bw5c_8_bin/X_train.npy')
+y_train = np.load('./bw5c_8_bin/y_train.npy')
+
+X_val = np.load('./bw5c_8_bin/X_val.npy')
+y_val = np.load('./bw5c_8_bin/y_val.npy')
 
 n_examples = y_train.shape[0]
 n_ftrs = X_train.shape[2]
@@ -81,6 +87,7 @@ with tf.Session() as sess:
             c_train = sess.run(cost, feed_dict={seq_in: x_cost, seq_out: y_cost, keep_prob: 1.0})
             c_valid = sess.run(cost, feed_dict={seq_in: X_val, seq_out: y_val, keep_prob: 1.0})
             print('{}. c_train={} c_valid={}'.format(i, c_train, c_valid))
+            sys.stdout.flush()
             saver.save(sess, model_path, global_step=i)
         sess.run(train_step, feed_dict={seq_in: x_batch, seq_out: y_batch, keep_prob: 0.8})
 

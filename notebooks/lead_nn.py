@@ -6,7 +6,7 @@ import bidding
 
 from batcher import Batcher
 
-model_path = './lead_model5/lead'
+model_path = './lead_model/lead'
 
 seed = 1337
 
@@ -14,21 +14,21 @@ batch_size = 64
 n_iterations = 4000000
 display_step = 20000
 
-A_train = np.load('../data/leads_bin/A_train.npy')
-H_train = np.load('../data/leads_bin/H_train.npy')
-C_train = np.load('../data/leads_bin/C_train.npy')
+A_train = np.load('../data/leads_bin2/A_train.npy')
+H_train = np.load('../data/leads_bin2/H_train.npy')
+C_train = np.load('../data/leads_bin2/C_train.npy')
 
-A_val = np.load('../data/leads_bin/A_val.npy')
-H_val = np.load('../data/leads_bin/H_val.npy')
-C_val = np.load('../data/leads_bin/C_val.npy')
+A_val = np.load('../data/leads_bin2/A_val.npy')
+H_val = np.load('../data/leads_bin2/H_val.npy')
+C_val = np.load('../data/leads_bin2/C_val.npy')
 
 n_examples = A_train.shape[0]
 n_bids = A_train.shape[1]
 n_bid_ftrs = A_train.shape[2]
 n_hand_ftrs = H_train.shape[1]
 
-#n_hidden_units = [512, 128]
-n_hidden_units = [1024, 256, 256]
+n_hidden_units = [512, 128]
+#n_hidden_units = [1024, 256, 256]
 
 lstm_size = 64
 n_layers = 2

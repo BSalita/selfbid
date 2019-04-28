@@ -6,13 +6,13 @@ import bidding
 
 from batcher import Batcher
 
-model_path = './lead_model_jack4/lead_jack'
+model_path = './lead_model_jack/lead_jack'
 
 seed = 1337
 
 batch_size = 64
-n_iterations = 1000000
-display_step = 1000
+n_iterations = 5000000
+display_step = 20000
 
 A_train = np.load('../data/leads_bin2/A_train.npy')
 H_train = np.load('../data/leads_bin2/H_train.npy')
@@ -105,7 +105,9 @@ cost_reg = l2_reg * (1.0 / (2*batch_size)) * sum([tf.reduce_sum(tf.square(w)) fo
 
 cost = cost_pred/batch_size + cost_reg
 
-train_step = tf.train.AdamOptimizer(0.0001).minimize(cost)
+learning_rate = tf.placeholder(tf.float32, name='learning_rate')
+
+train_step = tf.train.AdamOptimizer(learning_rate).minimize(cost)
 #train_step = tf.train.MomentumOptimizer(0.0001, momentum=0.8).minimize(cost)
 #train_step = tf.train.MomentumOptimizer(0.001, momentum=0.9).minimize(cost)
 #train_step = tf.train.AdamOptimizer(0.001).minimize(cost)
@@ -150,6 +152,6 @@ with tf.Session() as sess:
 
             saver.save(sess, model_path, global_step=i)
         
-        sess.run(train_step, feed_dict={seq_in: a_batch, H: h_batch, L: l_batch, keep_prob: 0.8})
+        sess.run(train_step, feed_dict={seq_in: a_batch, H: h_batch, L: l_batch, keep_prob: 0.8, learning_rate: 0.0003 / (2**(i/1e6))})
 
     saver.save(sess, model_path, global_step=n_iterations)

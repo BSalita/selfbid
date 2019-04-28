@@ -11,7 +11,7 @@ model_path = './lead_model/lead'
 seed = 1337
 
 batch_size = 64
-n_iterations = 4000000
+n_iterations = 5000000
 display_step = 20000
 
 A_train = np.load('../data/leads_bin2/A_train.npy')
@@ -27,8 +27,8 @@ n_bids = A_train.shape[1]
 n_bid_ftrs = A_train.shape[2]
 n_hand_ftrs = H_train.shape[1]
 
-n_hidden_units = [512, 128]
-#n_hidden_units = [1024, 256, 256]
+#n_hidden_units = [512, 128]
+n_hidden_units = [1024, 256, 256]
 
 lstm_size = 64
 n_layers = 2
@@ -81,6 +81,7 @@ w_out = tf.get_variable('w_out', shape=[n_hidden_units[1], 52], dtype=tf.float32
 
 pred_logit = tf.matmul(fc_a_1, w_out, name='pred_logit')
 pred = tf.nn.sigmoid(pred_logit, name='pred')
+#pred = tf.multiply(H[:, 18:], pred_logit, name='pred')
 
 weights = [fc_w, fc_w_1, w_out]
 
@@ -140,6 +141,6 @@ with tf.Session() as sess:
 
             saver.save(sess, model_path, global_step=i)
         
-        sess.run(train_step, feed_dict={seq_in: a_batch, H: h_batch, C: c_batch, keep_prob: 0.8, learning_rate: 0.0003})
+        sess.run(train_step, feed_dict={seq_in: a_batch, H: h_batch, C: c_batch, keep_prob: 0.8, learning_rate: 0.0003 / (2**(i/1e6))})
 
     saver.save(sess, model_path, global_step=n_iterations)

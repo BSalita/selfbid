@@ -4,18 +4,18 @@ import tensorflow as tf
 
 from batcher import Batcher
 
-model_path = './lefty_model/lefty'
+model_path = './dummy_model/dummy'
 
 batch_size = 64
 n_iterations = 1000000
 display_step = 10000
 
 
-X_train = np.load('./lefty_bin/X_train.npy')
-Y_train = np.load('./lefty_bin/Y_train.npy')
+X_train = np.load('./dummy_bin/X_train.npy')
+Y_train = np.load('./dummy_bin/Y_train.npy')
 
-X_val = np.load('./lefty_bin/X_val.npy')
-Y_val = np.load('./lefty_bin/Y_val.npy')
+X_val = np.load('./dummy_bin/X_val.npy')
+Y_val = np.load('./dummy_bin/Y_val.npy')
 
 n_examples = Y_train.shape[0]
 n_ftrs = X_train.shape[2]
@@ -52,8 +52,8 @@ softmax_w = tf.get_variable('softmax_w', shape=[lstm_cell.output_size, n_cards],
 
 out_rnn, _ = tf.nn.dynamic_rnn(lstm_cell, seq_in, dtype=tf.float32)
 
-out_card_logit = tf.matmul(tf.reshape(out_rnn[:,1:,:], [-1, lstm_size]), softmax_w, name='out_card_logit')
-out_card_target = tf.reshape(seq_out[:,1:,:], [-1, n_cards], name='out_card_target')
+out_card_logit = tf.matmul(tf.reshape(out_rnn, [-1, lstm_size]), softmax_w, name='out_card_logit')
+out_card_target = tf.reshape(seq_out, [-1, n_cards], name='out_card_target')
 
 output, next_state = lstm_cell(x_in, state)
 

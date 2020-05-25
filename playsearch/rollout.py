@@ -53,6 +53,8 @@ class PlayerRollout:
         binary_in.set_public_hand(binary_in.get_public_hand() - card_one_hot)
 
     def get_next_cards_softmax(self, trick_i):
+        # should this be: player.next_cards_softmax(self.x_in[:, : trick_i,:])  ?
+        # (because we have to give the whole sequence)
         return player.next_cards_softmax(self.x_in[:,trick_i,:])
 
 
@@ -157,6 +159,7 @@ class Rollout:
                 player_rollouts[i].set_public_hand(0, sampled_hands[self.public_i])
 
         # current trick is still missing at this point
+        # current trick is always in the order: lho, pard, rho
 
         return player_rollouts
 

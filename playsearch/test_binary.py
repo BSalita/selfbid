@@ -83,6 +83,7 @@ class BinaryInputTest(unittest.TestCase):
         self.assertTrue((binary_in.get_player_hand()[99,:] == hand).all())
 
     def test_last_trick_lead(self):
+        ## TODO: write test
         pass
 
     def test_cards_binary_hand(self):
@@ -130,6 +131,48 @@ class BinaryInputTest(unittest.TestCase):
         for hand, cards in zip(hands, cards_list):
             self.assertTrue((get_cards_from_binary_hand(hand) == cards).all())
             self.assertTrue((get_binary_hand_from_cards(cards) == hand).all())
+
+    def test_this_trick_lead_suit(self):
+        binary_in = BinaryInput(np.zeros((6, 298)))
+
+        this_trick = np.zeros((6, 3, 32))
+
+        # sample 0: nothing was played in the trick yet
+        # sample 1: rho led the spade A
+        this_trick[1, 2] = get_binary_hand_from_cards([0])
+        # sample 2: partner led the diamond K and rho put a small spade
+        this_trick[2, 1] = get_binary_hand_from_cards([17])
+        this_trick[2, 2] = get_binary_hand_from_cards([7])
+        # sample 3: lho led a small club, partner followed small and rho discarded a small diamond
+        this_trick[3, 0] = get_binary_hand_from_cards([31])
+        this_trick[3, 1] = get_binary_hand_from_cards([31])
+        this_trick[3, 2] = get_binary_hand_from_cards([23])
+        # sample 4: lho led a small heart, partner discarded a small spade and rho discarded a small club
+        this_trick[4, 0] = get_binary_hand_from_cards([15])
+        this_trick[4, 1] = get_binary_hand_from_cards([7])
+        this_trick[4, 2] = get_binary_hand_from_cards([31])
+        # sample 5: lho led the club A, everyone followed small
+        this_trick[5, 0] = get_binary_hand_from_cards([24])
+        this_trick[5, 1] = get_binary_hand_from_cards([31])
+        this_trick[5, 2] = get_binary_hand_from_cards([31])
+
+
+
+        expected_lead_suit = np.array([
+            [0, 0, 0, 0],   # nothing was lead. we are on lead
+            [1, 0, 0, 0],   # spade was lead
+            [0, 0, 1, 0],   # diamond was lead
+            [0, 0, 0, 1],
+            [0, 1, 0, 0],
+            [0, 0, 0, 1],
+        ])
+
+        binary_in.set_this_trick(this_trick)
+
+        got_lead_suit = binary_in.get_this_trick_lead_suit()
+
+        self.assertTrue(got_lead_suit.shape == (6, 4))
+        self.assertTrue((expected_lead_suit == got_lead_suit).all())
 
 
 if __name__ == '__main__':

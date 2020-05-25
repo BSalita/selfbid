@@ -68,6 +68,24 @@ class BinaryInput:
     def get_strain(self):
         return self.x[:, 293:298]
 
+    def get_this_trick_lead_suit(self):
+        '''
+        returns one-hot encoded suit of the card lead in this trick [S, H, D, C]
+        '''
+        this_trick = self.get_this_trick()
+        this_trick_lead_suit = np.zeros((self.n_samples, 4))
+
+        for k in (0, 1, 2):
+            card = np.argmax(this_trick[:,k,:], axis=1)
+            was_played = np.max(this_trick[:,k,:], axis=1) > 0
+            lead_found = np.max(this_trick_lead_suit, axis=1) > 0
+
+            card_suit = card // 8
+
+            this_trick_lead_suit[was_played & (~lead_found), card_suit[was_played & (~lead_found)]] = 1
+
+        return this_trick_lead_suit
+
 
 def get_cards_from_binary_hand(hand):
     cards = []

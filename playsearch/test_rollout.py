@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 
 from binary import BinaryInput
-from player import BatchPlayer
+from player import BatchPlayer, BatchPlayerLefty
 from rollout import RandomPlayer, PlayerRollout, Rollout, get_all_hidden_cards
 
 
@@ -22,19 +22,47 @@ class PlayerTest(unittest.TestCase):
 class BatchPlayerTest(unittest.TestCase):
 
     def test_prediction_shape(self):
-        player = BatchPlayer('player', '../notebooks/decl_model/decl-1000000')
+        lefty = BatchPlayerLefty('lefty', '../notebooks/lefty_model/lefty-1000000')
+        dummy = BatchPlayer('dummy', '../notebooks/dummy_model/dummy-920000')
+        righty = BatchPlayer('righty', '../notebooks/righty_model/righty-1000000')
+        decl = BatchPlayer('decl', '../notebooks/decl_model/decl-1000000')
+        
+        # check that the graphs and sessions of the four different players are different
+        self.assertFalse(lefty.sess is dummy.sess)
+        self.assertFalse(lefty.sess is righty.sess)
+        self.assertFalse(lefty.sess is decl.sess)
+        self.assertFalse(dummy.sess is righty.sess)
+        self.assertFalse(dummy.sess is decl.sess)
+        self.assertFalse(righty.sess is decl.sess)
 
+        self.assertFalse(lefty.graph is dummy.graph)
+        self.assertFalse(lefty.graph is righty.graph)
+        self.assertFalse(lefty.graph is decl.graph)
+        self.assertFalse(dummy.graph is righty.graph)
+        self.assertFalse(dummy.graph is decl.graph)
+        self.assertFalse(righty.graph is decl.graph)
+
+        players = [lefty, dummy, righty, decl]
+
+        for player in players:
+            x = np.random.random((100, 10, 298))
+            predictions = player.next_cards_softmax(x)
+            self.assertTrue(predictions.shape == (100, 32))
+            # prediction must sum to 1
+            self.assertTrue(np.abs(np.min(np.sum(predictions, axis=1)) - 1) < 1e-6)
+            self.assertTrue(np.abs(np.max(np.sum(predictions, axis=1)) - 1) < 1e-6)
+
+        for player in players:
+            player.close()
+
+    def test_lefty_prediction(self):
+        # the lefty model is special because it does not predict the card on the first trick
+        # not taking this into account should raise an exception
+        lefty_wrong = BatchPlayer('lefty', '../notebooks/lefty_model/lefty-1000000')
         x = np.random.random((100, 10, 298))
-        predictions = player.next_cards_softmax(x)
-        self.assertTrue(predictions.shape == (100, 32))
-        # prediction must sum to 1
-        self.assertTrue(np.abs(np.min(np.sum(predictions, axis=1)) - 1) < 1e-6)
-        self.assertTrue(np.abs(np.max(np.sum(predictions, axis=1)) - 1) < 1e-6)
-
-        #import pdb; pdb.set_trace()
-
-        player.close()
-
+        with self.assertRaises(ValueError):
+            lefty_wrong.next_cards_softmax(x)
+        lefty_wrong.close()
 
 
 class PlayerRolloutTest(unittest.TestCase):
@@ -108,13 +136,18 @@ class PlayerRolloutTest(unittest.TestCase):
         for visible_cards, hidden_cards in zip(visible_cards_list, hidden_cards_list):
             self.assertTrue((get_all_hidden_cards(visible_cards) == hidden_cards).all())
 
+
+class RolloutTest(unittest.TestCase):
+
     def test_rollout_init(self):
 
         this_trick = np.zeros(3 * 32)
         this_trick[2 * 32 + 17] = 1
-        
+
+        n_samples = 8  # something strange happens when this is > 1000.   TODO: investigate
+
         rollout = Rollout(
-            n_samples = 4,
+            n_samples = n_samples,
             players = [RandomPlayer(32) for _ in range(4)],
             on_play_i = 1,
             public_i = 1,
@@ -147,18 +180,19 @@ class PlayerRolloutTest(unittest.TestCase):
         self.assertTrue(len(rollout.player_rollouts) == 4)
 
         for player_rollout in rollout.player_rollouts:
-            self.assertTrue(player_rollout.x_in.shape == (4, 13, 298))
+            self.assertTrue(player_rollout.x_in.shape == (n_samples, 13, 298))
 
         for i, player_rollout in enumerate(rollout.player_rollouts):
             sum_player_hand_samples = np.sum(player_rollout.get_player_hand(0), axis=0).reshape((4, 8))
             sum_public_hand_samples = np.sum(player_rollout.get_public_hand(0), axis=0).reshape((4, 8))
 
-            self.assertTrue(((sum_player_hand_samples * sum_public_hand_samples)[:,:7] == np.zeros((4, 7))).all())
-            self.assertTrue(np.sum(sum_public_hand_samples) / 4 == 13)
+            # check that there are no common cards between the player hand and the public hand (except the smallest card that is reused)
+            self.assertTrue((((sum_player_hand_samples / n_samples) * (sum_public_hand_samples / n_samples))[:,:7] == np.zeros((4, 7))).all())
+            self.assertTrue(np.sum(sum_public_hand_samples) / n_samples == 13)
             if i == 0:
-                self.assertTrue(np.sum(sum_player_hand_samples) / 4 == 12)
+                self.assertTrue(np.sum(sum_player_hand_samples) / n_samples == 12)
             else:
-                self.assertTrue(np.sum(sum_player_hand_samples) / 4 == 13)
+                self.assertTrue(np.sum(sum_player_hand_samples) / n_samples == 13)
 
         [lefty, dummy, righty, declarer] = rollout.player_rollouts
 
@@ -185,8 +219,8 @@ class PlayerRolloutTest(unittest.TestCase):
             self.assertTrue((BinaryInput(player_rollout.x_in[:,0,:]).get_level() == 4).all())
             self.assertTrue((BinaryInput(player_rollout.x_in[:,0,:]).get_strain() == np.array([0,1,0,0,0])).all())
             self.assertTrue((BinaryInput(player_rollout.x_in[:,0,:]).get_last_trick_lead() == 0).all())
-            self.assertTrue((BinaryInput(player_rollout.x_in[:,0,:]).get_last_trick() == np.zeros((4, 4, 32))).all())
-            self.assertTrue((BinaryInput(player_rollout.x_in[:,0,:]).get_this_trick() == np.zeros((4, 3, 32))).all())
+            self.assertTrue((BinaryInput(player_rollout.x_in[:,0,:]).get_last_trick() == np.zeros((n_samples, 4, 32))).all())
+            self.assertTrue((BinaryInput(player_rollout.x_in[:,0,:]).get_this_trick() == np.zeros((n_samples, 3, 32))).all())
 
 
 if __name__ == '__main__':

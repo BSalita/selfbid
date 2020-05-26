@@ -81,3 +81,36 @@ def follow_suit(cards_softmax, own_cards, trick_suit):
     s[s < 1e-9] = 1
 
     return legal_cards_softmax / s
+
+
+def get_trick_winner_i(trick, strain):
+    assert trick.shape[1] == 4 * 32
+    assert strain.shape[1] == 5
+
+    n_samples = trick.shape[0]
+
+    trick_cards = np.hstack([
+        np.argmax(trick[:,:32], axis=1).reshape((-1, 1)),
+        np.argmax(trick[:,32:64], axis=1).reshape((-1, 1)),
+        np.argmax(trick[:,64:96], axis=1).reshape((-1, 1)),
+        np.argmax(trick[:,96:], axis=1).reshape((-1, 1))
+    ])
+    assert trick_cards.shape == (n_samples, 4)
+
+    trick_cards_suit = trick_cards // 8
+
+    trump_suit_i = np.argmax(strain, axis=1).reshape((-1, 1)) - 1
+
+    is_trumped = np.any(trick_cards_suit == trump_suit_i, axis=1).reshape((-1, 1))
+
+    trick_cards_trumps = trick_cards.copy()
+    trick_cards_trumps[trick_cards_suit != trump_suit_i] = 99
+    highest_trump_i = np.argmin(trick_cards_trumps, axis=1).reshape((-1, 1))
+
+    lead_suit = trick_cards_suit[:,0].reshape((-1, 1))
+
+    trick_cards_lead_suit = trick_cards.copy()
+    trick_cards_lead_suit[trick_cards_suit != lead_suit] = 99
+    highest_lead_suit_i = np.argmin(trick_cards_lead_suit, axis=1).reshape((-1, 1))
+
+    return np.where(is_trumped, highest_trump_i, highest_lead_suit_i)

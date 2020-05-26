@@ -71,7 +71,9 @@ def follow_suit(cards_softmax, own_cards, trick_suit):
 
     mask = (own_cards > 0).astype(np.int)
 
-    mask[suit_defined] *= SUIT_MASK[trick_suit_i[suit_defined]]
+    has_cards_of_suit = np.sum(mask * SUIT_MASK[trick_suit_i], axis=1) > 1e-9
+
+    mask[suit_defined & has_cards_of_suit] *= SUIT_MASK[trick_suit_i[suit_defined & has_cards_of_suit]]
 
     legal_cards_softmax = cards_softmax * mask
 

@@ -33,7 +33,7 @@ class FollowSuitTest(unittest.TestCase):
         legal_cards_softmax = follow_suit(cards_softmax, own_cards, trick_suit)
 
         self.assertTrue(
-            (np.abs(np.sum(legal_cards_softmax, axis=1) - np.array([1, 1, 1, 1, 1, 0, 0, 0])) < 1e-9).all())
+            (np.abs(np.sum(legal_cards_softmax, axis=1) - np.array([1, 1, 1, 1, 1, 0, 1, 0])) < 1e-9).all())
 
         self.assertTrue(
             ((legal_cards_softmax[0,:] > 1e-9).astype(np.int) == get_binary_hand_from_cards([0, 1, 2, 7, 8, 11, 12, 16, 24, 31])).all())
@@ -50,7 +50,10 @@ class FollowSuitTest(unittest.TestCase):
         self.assertTrue(
             ((legal_cards_softmax[4,:] > 1e-9).astype(np.int) == get_binary_hand_from_cards([0, 1, 16, 17, 24, 25])).all())
 
-        for i in (5, 6, 7):
+        self.assertTrue(
+            ((legal_cards_softmax[6,:] > 1e-9).astype(np.int) == get_binary_hand_from_cards([8, 9, 10, 16, 17, 18, 24, 31])).all())
+
+        for i in (5, 7):
             self.assertTrue(
                 ((legal_cards_softmax[i,:] > 1e-9).astype(np.int) == get_binary_hand_from_cards([])).all())
 
